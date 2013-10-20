@@ -124,8 +124,8 @@ function cpptab() {
       rsync -aHA ${src_mnt}/ ${dst_mnt}
       sync
 
-      umount -l ${src_mnt}
-      umount -l ${dst_mnt}
+      umount ${src_mnt}
+      umount ${dst_mnt}
 
       rmdir ${src_mnt}
       rmdir ${dst_mnt}
