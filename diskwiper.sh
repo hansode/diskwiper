@@ -2,6 +2,10 @@
 #
 # requires:
 #  bash
+#  sed, egrep, awk, uniq, cat, chroot
+#  mkdirm, rmdir, mount, umount, rsync
+#  truncate, losetup, dd, udevadm, parted, kpartx
+#  blkid, mkswap, mkfs.ext4, tune2fs
 #
 set -e
 set -x
