@@ -48,13 +48,16 @@ function cpmbr() {
 ## partition
 
 function lspart() {
-  local filepath=$1
+  local disk_filename=$1
 
   # $ sudo parted centos-6.4_x86_64.raw print | sed "1,/^Number/d" | egrep -v '^$'
   #  1      32.3kB  4294MB  4294MB  primary  ext4
   #  2      4295MB  5368MB  1073MB  primary  linux-swap(v1)
 
-  parted ${filepath} print | sed "1,/^Number/d" | egrep -v '^$' | awk '{print $1, $6}'
+  parted ${disk_filename} print \
+  | sed "1,/^Number/d" \
+  | egrep -v '^$' \
+  | awk '{print $1, $6}'
 }
 
 function lspartmap() {
