@@ -43,7 +43,12 @@ function cpmbr() {
   local lodev=$(losetup -f)
 
   losetup ${lodev} ${dst_filepath}
-  dd if=${src_filepath} of=${lodev} bs=512 count=1
+  # count=
+  # - NG  1..27
+  # - OK 28..63
+  #
+  # count=63 means to copy partition-table and bootloader(grub stage1.5)
+  dd if=${src_filepath} of=${lodev} bs=512 count=63
 
   udevadm settle
   losetup -d ${lodev}
@@ -137,59 +142,6 @@ function cpptab() {
   udevadm settle
 }
 
-## bootloader
-
-function copy_bootloader() {
-  local src_filepath=$1 dst_filepath=$2
-
-  local dst_lodev=$(getdmname ${dst_filepath})
-
-  local rootfs_dev=
-  while read line; do
-    set ${line}
-    case "${2}" in
-    ext*)
-      if [[ -z "${rootfs_dev}" ]]; then
-        rootfs_dev=/dev/mapper/${dst_lodev}${1}
-      fi
-    esac
-  done < <(lspart ${src_filepath})
-
-  local chroot_dir=/tmp/tmp$(date +%s.%N)
-  mkdir -p ${chroot_dir}
-  mount ${rootfs_dev} ${chroot_dir}
-  cat ${chroot_dir}/etc/fstab
-
-  local root_dev="hd0"
-  local tmpdir=/tmp/vmbuilder-grub
-
-  local new_filename=${tmpdir}/${dst_filepath##*/}
-  mkdir -p ${chroot_dir}/${tmpdir}
-
-  touch ${chroot_dir}/${new_filename}
-  mount --bind ${dst_filepath} ${chroot_dir}/${new_filename}
-
-  local devmapfile=${tmpdir}/device.map
-  touch ${chroot_dir}/${devmapfile}
-
-  local disk_id=0
-  printf "(hd%d) %s\n" ${disk_id} ${new_filename} >>  ${chroot_dir}/${devmapfile}
-  cat ${chroot_dir}/${devmapfile}
-
-  mkdir -p ${chroot_dir}/${tmpdir}
-
-  local grub_cmd="chroot ${chroot_dir} grub --batch --device-map=${devmapfile}"
-  cat <<-_EOS_ | ${grub_cmd}
-	root (${root_dev},0)
-	setup (hd0)
-	quit
-	_EOS_
-
-  umount ${chroot_dir}/${new_filename}
-  umount ${chroot_dir}
-  rmdir  ${chroot_dir}
-}
-
 ## diskwiper
 
 function diskwiper() {
@@ -199,7 +151,6 @@ function diskwiper() {
 
   cpmbr           ${src_filepath} ${dst_filepath}
   cpptab          ${src_filepath} ${dst_filepath}
-  copy_bootloader ${src_filepath} ${dst_filepath}
 
   kpartx -vd ${src_filepath}
   kpartx -vd ${dst_filepath}
