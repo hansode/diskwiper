@@ -34,7 +34,7 @@ function mkdisk() {
 
 ## mbr
 
-function copy_mbr() {
+function cpmbr() {
   local src_filepath=$1 dst_filepath=$2
   local lodev=$(losetup -f)
 
@@ -196,7 +196,7 @@ checkroot
 ## main
 
 mkdisk ${dst_filepath} $(stat -c %s ${src_filepath}) " "
-copy_mbr  ${src_filepath} ${dst_filepath}
+cpmbr  ${src_filepath} ${dst_filepath}
 sync_ptab ${src_filepath} ${dst_filepath}
 setup_bootloader ${src_filepath} ${dst_filepath}
 
