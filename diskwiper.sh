@@ -77,7 +77,7 @@ function tmpdir_path() {
   echo /tmp/tmp$(date +%s.%N)
 }
 
-function sync_ptab() {
+function cpptab() {
   local src_filepath=$1 dst_filepath=$2
   local src_lodev=$(lspartmap ${src_filepath})
   local dst_lodev=$(lspartmap ${dst_filepath})
@@ -197,7 +197,7 @@ checkroot
 
 mkdisk ${dst_filepath} $(stat -c %s ${src_filepath}) " "
 cpmbr  ${src_filepath} ${dst_filepath}
-sync_ptab ${src_filepath} ${dst_filepath}
+cpptab ${src_filepath} ${dst_filepath}
 setup_bootloader ${src_filepath} ${dst_filepath}
 
 kpartx -vd ${src_filepath}
