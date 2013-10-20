@@ -39,6 +39,7 @@ function lspart() {
   # $ sudo parted centos-6.4_x86_64.raw print | sed "1,/^Number/d" | egrep -v '^$'
   #  1      32.3kB  4294MB  4294MB  primary  ext4
   #  2      4295MB  5368MB  1073MB  primary  linux-swap(v1)
+
   parted ${filepath} print | sed "1,/^Number/d" | egrep -v '^$' | awk '{print $1, $6}'
 }
 
@@ -67,10 +68,12 @@ tmpdir_path() {
 
 while read line; do
   set ${line}
+
   src_part_filename=/dev/mapper/${src_lodev}${1}
   dst_part_filename=/dev/mapper/${dst_lodev}${1}
 
   src_disk_uuid=$(blkid -c /dev/null -sUUID -ovalue ${src_part_filename})
+
   case "${2}" in
   *swap*)
     mkswap -f -L swap -U ${src_disk_uuid} ${dst_part_filename}
@@ -109,7 +112,6 @@ udevadm settle
 rootfs_dev=
 while read line; do
   set ${line}
-  src_part_filename=/dev/mapper/${src_lodev}${1}
   case "${2}" in
   ext*|*)
     [[ -n "${rootfs_dev}" ]] || rootfs_dev=/dev/mapper/${dst_lodev}${1}
