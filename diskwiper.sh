@@ -44,8 +44,20 @@ function lspart() {
 # $ sudo kpartx -va centos-6.4_x86_64.raw
 # add map loop0p1 (253:0): 0 8386498 linear /dev/loop0 63
 # add map loop0p2 (253:1): 0 2095104 linear /dev/loop0 8388608
-src_lodev=$(kpartx -va ${src_filepath} | egrep "^add map" | awk '{print $3}' | sed 's,[0-9]$,,' | uniq); udevadm settle
-dst_lodev=$(kpartx -va ${dst_filename} | egrep "^add map" | awk '{print $3}' | sed 's,[0-9]$,,' | uniq); udevadm settle
+function lspartmap() {
+  local disk_filepath=$1
+
+  local kpartx_output=$(kpartx -va ${disk_filepath})
+  udevadm settle
+  echo "${kpartx_output}" \
+  | egrep "^add map" \
+  | awk '{print $3}' \
+  | sed 's,[0-9]$,,' \
+  | uniq
+}
+
+src_lodev=$(lspartmap ${src_filepath})
+dst_lodev=$(lspartmap ${dst_filename})
 
 while read line; do
   set ${line}
