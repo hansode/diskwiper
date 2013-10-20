@@ -33,19 +33,21 @@ losetup -d ${lodev}
 
 ## partition
 
-# $ sudo parted centos-6.4_x86_64.raw print | sed "1,/^Number/d" | egrep -v '^$'
-#  1      32.3kB  4294MB  4294MB  primary  ext4
-#  2      4295MB  5368MB  1073MB  primary  linux-swap(v1)
 function lspart() {
   local filepath=$1
+
+  # $ sudo parted centos-6.4_x86_64.raw print | sed "1,/^Number/d" | egrep -v '^$'
+  #  1      32.3kB  4294MB  4294MB  primary  ext4
+  #  2      4295MB  5368MB  1073MB  primary  linux-swap(v1)
   parted ${filepath} print | sed "1,/^Number/d" | egrep -v '^$' | awk '{print $1, $6}'
 }
 
-# $ sudo kpartx -va centos-6.4_x86_64.raw
-# add map loop0p1 (253:0): 0 8386498 linear /dev/loop0 63
-# add map loop0p2 (253:1): 0 2095104 linear /dev/loop0 8388608
 function lspartmap() {
   local disk_filepath=$1
+
+  # $ sudo kpartx -va centos-6.4_x86_64.raw
+  # add map loop0p1 (253:0): 0 8386498 linear /dev/loop0 63
+  # add map loop0p2 (253:1): 0 2095104 linear /dev/loop0 8388608
 
   local kpartx_output=$(kpartx -va ${disk_filepath})
   udevadm settle
