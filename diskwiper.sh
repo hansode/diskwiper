@@ -61,6 +61,10 @@ function lspartmap() {
 src_lodev=$(lspartmap ${src_filepath})
 dst_lodev=$(lspartmap ${dst_filename})
 
+tmpdir_path() {
+  echo /tmp/tmp$(date +%s.%N)
+}
+
 while read line; do
   set ${line}
   src_part_filename=/dev/mapper/${src_lodev}${1}
@@ -78,8 +82,9 @@ while read line; do
     tune2fs -c 0 -i 0 ${dst_part_filename}
     tune2fs -o acl    ${dst_part_filename}
 
-    src_mnt=/tmp/tmp$(date +%s.%N)
-    dst_mnt=/tmp/tmp$(date +%s.%N)
+    src_mnt=$(tmpdir_path)
+    dst_mnt=$(tmpdir_path)
+
     mkdir -p ${src_mnt}
     mkdir -p ${dst_mnt}
 
@@ -92,8 +97,8 @@ while read line; do
     umount -l ${src_mnt}
     umount -l ${dst_mnt}
 
-    rmdir    ${src_mnt}
-    rmdir    ${dst_mnt}
+    rmdir ${src_mnt}
+    rmdir ${dst_mnt}
     ;;
   esac
 done < <(lspart ${src_filepath})
