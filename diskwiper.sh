@@ -64,7 +64,7 @@ function lspart() {
   | awk '{print $1, $6}'
 }
 
-function lspartmap() {
+function getdmname() {
   local disk_filepath=$1
 
   # $ sudo kpartx -va centos-6.4_x86_64.raw
@@ -86,8 +86,8 @@ function tmpdir_path() {
 
 function cpptab() {
   local src_filepath=$1 dst_filepath=$2
-  local src_lodev=$(lspartmap ${src_filepath})
-  local dst_lodev=$(lspartmap ${dst_filepath})
+  local src_lodev=$(getdmname ${src_filepath})
+  local dst_lodev=$(getdmname ${dst_filepath})
 
   local line
   while read line; do
@@ -142,7 +142,7 @@ function cpptab() {
 function copy_bootloader() {
   local src_filepath=$1 dst_filepath=$2
 
-  local dst_lodev=$(lspartmap ${dst_filepath})
+  local dst_lodev=$(getdmname ${dst_filepath})
 
   local rootfs_dev=
   while read line; do
