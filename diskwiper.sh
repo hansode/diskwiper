@@ -9,7 +9,7 @@ set -x
 # variables
 
 declare src_filepath=$1
-declare dst_filename=zxcv.raw
+declare dst_filepath=zxcv.raw
 
 # validate
 
@@ -31,21 +31,21 @@ size=$(stat -c %s ${src_filepath})
 
 ## disk
 
-truncate -s ${size} ${dst_filename}
+truncate -s ${size} ${dst_filepath}
 
 ## mbr
 
 function copy_mbr() {
-  local src_filepath=$1 dst_filename=$2
+  local src_filepath=$1 dst_filepath=$2
   local lodev=$(losetup -f)
 
-  losetup ${lodev} ${dst_filename}
+  losetup ${lodev} ${dst_filepath}
   dd if=${src_filepath} of=${lodev} bs=512 count=1
 
   udevadm settle
   losetup -d ${lodev}
 }
-copy_mbr ${src_filepath} ${dst_filename}
+copy_mbr ${src_filepath} ${dst_filepath}
 
 ## partition
 
@@ -80,9 +80,9 @@ function tmpdir_path() {
 }
 
 function sync_ptab() {
-  local src_filepath=$1 dst_filename=$2
+  local src_filepath=$1 dst_filepath=$2
   local src_lodev=$(lspartmap ${src_filepath})
-  local dst_lodev=$(lspartmap ${dst_filename})
+  local dst_lodev=$(lspartmap ${dst_filepath})
 
   local line
   while read line; do
@@ -126,14 +126,14 @@ function sync_ptab() {
   done < <(lspart ${src_filepath})
   udevadm settle
 }
-sync_ptab ${src_filepath} ${dst_filename}
+sync_ptab ${src_filepath} ${dst_filepath}
 
 ## bootloader
 
 function setup_bootloader() {
-  local src_filepath=$1 dst_filename=$2
+  local src_filepath=$1 dst_filepath=$2
 
-  local dst_lodev=$(lspartmap ${dst_filename})
+  local dst_lodev=$(lspartmap ${dst_filepath})
 
   local rootfs_dev=
   while read line; do
@@ -152,11 +152,11 @@ function setup_bootloader() {
   local root_dev="hd0"
   local tmpdir=/tmp/vmbuilder-grub
 
-  local new_filename=${tmpdir}/${dst_filename##*/}
+  local new_filename=${tmpdir}/${dst_filepath##*/}
   mkdir -p ${chroot_dir}/${tmpdir}
 
   touch ${chroot_dir}/${new_filename}
-  mount --bind ${dst_filename} ${chroot_dir}/${new_filename}
+  mount --bind ${dst_filepath} ${chroot_dir}/${new_filename}
 
   local devmapfile=${tmpdir}/device.map
   touch ${chroot_dir}/${devmapfile}
@@ -178,7 +178,7 @@ function setup_bootloader() {
   umount ${chroot_dir}
   rmdir  ${chroot_dir}
 }
-setup_bootloader ${src_filepath} ${dst_filename}
+setup_bootloader ${src_filepath} ${dst_filepath}
 
 kpartx -vd ${src_filepath}
-kpartx -vd ${dst_filename}
+kpartx -vd ${dst_filepath}
