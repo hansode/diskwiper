@@ -36,16 +36,16 @@ truncate -s ${size} ${dst_filename}
 ## mbr
 
 function copy_mbr() {
-  local disk_filepath=$1
+  local src_filepath=$1 dst_filename=$2
   local lodev=$(losetup -f)
 
-  losetup ${lodev} ${disk_filepath}
+  losetup ${lodev} ${dst_filename}
   dd if=${src_filepath} of=${lodev} bs=512 count=1
 
   udevadm settle
   losetup -d ${lodev}
 }
-copy_mbr ${dst_filename}
+copy_mbr ${src_filepath} ${dst_filename}
 
 ## partition
 
