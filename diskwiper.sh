@@ -62,7 +62,7 @@ function lspartmap() {
 src_lodev=$(lspartmap ${src_filepath})
 dst_lodev=$(lspartmap ${dst_filename})
 
-tmpdir_path() {
+function tmpdir_path() {
   echo /tmp/tmp$(date +%s.%N)
 }
 
