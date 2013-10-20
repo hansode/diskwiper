@@ -98,13 +98,14 @@ function sync_ptab() {
       mkswap -f -L swap -U ${src_disk_uuid} ${dst_part_filename}
       ;;
     ext*)
+      mkfs.ext4 -F -E lazy_itable_init=1 -U ${src_disk_uuid} ${dst_part_filename}
+      tune2fs -c 0 -i 0 ${dst_part_filename}
+      tune2fs -o acl    ${dst_part_filename}
+
       local src_part_label=$(e2label ${src_part_filename})
       if [[ -n "${src_part_label}" ]]; then
          tune2fs -L ${src_part_label} ${dst_part_filename}
       fi
-      mkfs.ext4 -F -E lazy_itable_init=1 -U ${src_disk_uuid} ${dst_part_filename}
-      tune2fs -c 0 -i 0 ${dst_part_filename}
-      tune2fs -o acl    ${dst_part_filename}
 
       local src_mnt=$(tmpdir_path)
       local dst_mnt=$(tmpdir_path)
