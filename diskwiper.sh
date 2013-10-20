@@ -130,49 +130,55 @@ sync_ptab ${src_filepath} ${dst_filename}
 
 ## bootloader
 
-dst_lodev=$(lspartmap ${dst_filename})
-rootfs_dev=
-while read line; do
-  set ${line}
-  case "${2}" in
-  ext*|*)
-    [[ -n "${rootfs_dev}" ]] || rootfs_dev=/dev/mapper/${dst_lodev}${1}
-  esac
-done < <(lspart ${src_filepath})
+function setup_bootloader() {
+  local src_filepath=$1 dst_filename=$2
 
-chroot_dir=/tmp/tmp$(date +%s.%N)
-mkdir -p ${chroot_dir}
-mount ${rootfs_dev} ${chroot_dir}
-cat ${chroot_dir}/etc/fstab
+  local dst_lodev=$(lspartmap ${dst_filename})
 
-root_dev="hd0"
-tmpdir=/tmp/vmbuilder-grub
+  local rootfs_dev=
+  while read line; do
+    set ${line}
+    case "${2}" in
+    ext*|*)
+      [[ -n "${rootfs_dev}" ]] || rootfs_dev=/dev/mapper/${dst_lodev}${1}
+    esac
+  done < <(lspart ${src_filepath})
 
-new_filename=${tmpdir}/${dst_filename##*/}
-mkdir -p ${chroot_dir}/${tmpdir}
+  local chroot_dir=/tmp/tmp$(date +%s.%N)
+  mkdir -p ${chroot_dir}
+  mount ${rootfs_dev} ${chroot_dir}
+  cat ${chroot_dir}/etc/fstab
 
-touch ${chroot_dir}/${new_filename}
-mount --bind ${dst_filename} ${chroot_dir}/${new_filename}
+  local root_dev="hd0"
+  local tmpdir=/tmp/vmbuilder-grub
 
-devmapfile=${tmpdir}/device.map
-touch ${chroot_dir}/${devmapfile}
+  local new_filename=${tmpdir}/${dst_filename##*/}
+  mkdir -p ${chroot_dir}/${tmpdir}
 
-disk_id=0
-printf "(hd%d) %s\n" ${disk_id} ${new_filename} >>  ${chroot_dir}/${devmapfile}
-cat ${chroot_dir}/${devmapfile}
+  touch ${chroot_dir}/${new_filename}
+  mount --bind ${dst_filename} ${chroot_dir}/${new_filename}
 
-mkdir -p ${chroot_dir}/${tmpdir}
+  local devmapfile=${tmpdir}/device.map
+  touch ${chroot_dir}/${devmapfile}
 
-grub_cmd="chroot ${chroot_dir} grub --batch --device-map=${devmapfile}"
-cat <<-_EOS_ | ${grub_cmd}
+  local disk_id=0
+  printf "(hd%d) %s\n" ${disk_id} ${new_filename} >>  ${chroot_dir}/${devmapfile}
+  cat ${chroot_dir}/${devmapfile}
+
+  mkdir -p ${chroot_dir}/${tmpdir}
+
+  local grub_cmd="chroot ${chroot_dir} grub --batch --device-map=${devmapfile}"
+  cat <<-_EOS_ | ${grub_cmd}
 	root (${root_dev},0)
 	setup (hd0)
 	quit
 	_EOS_
 
-umount ${chroot_dir}/${new_filename}
-umount ${chroot_dir}
-rmdir  ${chroot_dir}
+  umount ${chroot_dir}/${new_filename}
+  umount ${chroot_dir}
+  rmdir  ${chroot_dir}
+}
+setup_bootloader ${src_filepath} ${dst_filename}
 
 kpartx -vd ${src_filepath}
 kpartx -vd ${dst_filename}
