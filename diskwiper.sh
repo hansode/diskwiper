@@ -190,22 +190,33 @@ function copy_bootloader() {
   rmdir  ${chroot_dir}
 }
 
-# variables
+## diskwiper
+
+function diskwiper() {
+  local src_filepath=$1 dst_filepath=$2
+
+  mkdisk ${dst_filepath} $(stat -c %s ${src_filepath}) " "
+
+  cpmbr           ${src_filepath} ${dst_filepath}
+  cpptab          ${src_filepath} ${dst_filepath}
+  copy_bootloader ${src_filepath} ${dst_filepath}
+
+  kpartx -vd ${src_filepath}
+  kpartx -vd ${dst_filepath}
+}
+
+## environment variables
+
+export LANG=C
+export LC_ALL=C
+
+## variables
 
 declare src_filepath=$1
 declare dst_filepath=${2:-zxcv.raw}
 
-## validate
+## main
 
 checkroot
 [[ -f "${src_filepath}" ]] || { echo "file not found: ${src_filepath}" >&2; exit 1; }
-
-## main
-
-mkdisk ${dst_filepath} $(stat -c %s ${src_filepath}) " "
-cpmbr  ${src_filepath} ${dst_filepath}
-cpptab ${src_filepath} ${dst_filepath}
-copy_bootloader ${src_filepath} ${dst_filepath}
-
-kpartx -vd ${src_filepath}
-kpartx -vd ${dst_filepath}
+diskwiper ${src_filepath} ${dst_filepath}
