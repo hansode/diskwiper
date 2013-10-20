@@ -13,7 +13,17 @@ declare dst_filename=zxcv.raw
 
 # validate
 
-[[ $UID == 0 ]] || { echo "Must run as root." >&2; exit 1; }
+function checkroot() {
+  #
+  # Check if we're running as root, and bail out if we're not.
+  #
+  [[ "${UID}" -ne 0 ]] && {
+    echo "[ERROR] Must run as root." >&2
+    return 1
+  } || :
+}
+checkroot
+
 [[ -f "${src_filepath}" ]] || { echo "file not found: ${src_filepath}" >&2; exit 1; }
 size=$(stat -c %s ${src_filepath})
 
