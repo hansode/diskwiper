@@ -65,56 +65,62 @@ function lspartmap() {
   | uniq
 }
 
-src_lodev=$(lspartmap ${src_filepath})
-dst_lodev=$(lspartmap ${dst_filename})
-
 function tmpdir_path() {
   echo /tmp/tmp$(date +%s.%N)
 }
 
-while read line; do
-  set ${line}
+function sync_ptab() {
+  local src_filepath=$1 dst_filename=$2
+  local src_lodev=$(lspartmap ${src_filepath})
+  local dst_lodev=$(lspartmap ${dst_filename})
 
-  src_part_filename=/dev/mapper/${src_lodev}${1}
-  dst_part_filename=/dev/mapper/${dst_lodev}${1}
+  local line
+  while read line; do
+    set ${line}
 
-  src_disk_uuid=$(blkid -c /dev/null -sUUID -ovalue ${src_part_filename})
+    local src_part_filename=/dev/mapper/${src_lodev}${1}
+    local dst_part_filename=/dev/mapper/${dst_lodev}${1}
 
-  case "${2}" in
-  *swap*)
-    mkswap -f -L swap -U ${src_disk_uuid} ${dst_part_filename}
-    ;;
-  ext*|*)
-    src_part_label=$(e2label ${src_part_filename})
-    [[ -z "${src_part_label}" ]] || tune2fs -L ${src_part_label} ${dst_part_filename}
-    mkfs.ext4 -F -E lazy_itable_init=1 -U ${src_disk_uuid} ${dst_part_filename}
-    tune2fs -c 0 -i 0 ${dst_part_filename}
-    tune2fs -o acl    ${dst_part_filename}
+    local src_disk_uuid=$(blkid -c /dev/null -sUUID -ovalue ${src_part_filename})
 
-    src_mnt=$(tmpdir_path)
-    dst_mnt=$(tmpdir_path)
+    case "${2}" in
+    *swap*)
+      mkswap -f -L swap -U ${src_disk_uuid} ${dst_part_filename}
+      ;;
+    ext*|*)
+      local src_part_label=$(e2label ${src_part_filename})
+      [[ -z "${src_part_label}" ]] || tune2fs -L ${src_part_label} ${dst_part_filename}
+      mkfs.ext4 -F -E lazy_itable_init=1 -U ${src_disk_uuid} ${dst_part_filename}
+      tune2fs -c 0 -i 0 ${dst_part_filename}
+      tune2fs -o acl    ${dst_part_filename}
 
-    mkdir -p ${src_mnt}
-    mkdir -p ${dst_mnt}
+      local src_mnt=$(tmpdir_path)
+      local dst_mnt=$(tmpdir_path)
 
-    mount ${src_part_filename} ${src_mnt}
-    mount ${dst_part_filename} ${dst_mnt}
+      mkdir -p ${src_mnt}
+      mkdir -p ${dst_mnt}
 
-    rsync -aHA ${src_mnt}/ ${dst_mnt}
-    sync
+      mount ${src_part_filename} ${src_mnt}
+      mount ${dst_part_filename} ${dst_mnt}
 
-    umount -l ${src_mnt}
-    umount -l ${dst_mnt}
+      rsync -aHA ${src_mnt}/ ${dst_mnt}
+      sync
 
-    rmdir ${src_mnt}
-    rmdir ${dst_mnt}
-    ;;
-  esac
-done < <(lspart ${src_filepath})
-udevadm settle
+      umount -l ${src_mnt}
+      umount -l ${dst_mnt}
+
+      rmdir ${src_mnt}
+      rmdir ${dst_mnt}
+      ;;
+    esac
+  done < <(lspart ${src_filepath})
+  udevadm settle
+}
+sync_ptab ${src_filepath} ${dst_filename}
 
 ## bootloader
 
+dst_lodev=$(lspartmap ${dst_filename})
 rootfs_dev=
 while read line; do
   set ${line}
