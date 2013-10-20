@@ -5,6 +5,7 @@
 #
 set -e
 set -x
+set -o pipefail
 
 # variables
 
