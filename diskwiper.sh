@@ -25,13 +25,23 @@ function checkroot() {
 checkroot
 
 [[ -f "${src_filepath}" ]] || { echo "file not found: ${src_filepath}" >&2; exit 1; }
-size=$(stat -c %s ${src_filepath})
 
 # main
 
 ## disk
 
-truncate -s ${size} ${dst_filepath}
+function mkdisk() {
+  #
+  # Creates the disk image (if it doesn't already exist).
+  #
+  local disk_filename=$1 size=${2:-0} unit=${3:-m}
+  [[ -a "${disk_filename}" ]] && { echo "[ERROR] already exists: ${disk_filename} (${BASH_SOURCE[0]##*/}:${LINENO})" >&2; return 1; }
+  [[ "${size}" -gt 0 ]] || { echo "[ERROR] Invalid argument: size:${size} (${BASH_SOURCE[0]##*/}:${LINENO})" >&2; return 1; }
+
+  truncate -s ${size}${unit} ${disk_filename}
+}
+
+mkdisk ${dst_filepath} $(stat -c %s ${src_filepath}) " "
 
 ## mbr
 
