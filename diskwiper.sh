@@ -148,7 +148,7 @@ function copy_bootloader() {
   while read line; do
     set ${line}
     case "${2}" in
-    ext*|*)
+    ext*)
       if [[ -z "${rootfs_dev}" ]]; then
         rootfs_dev=/dev/mapper/${dst_lodev}${1}
       fi
