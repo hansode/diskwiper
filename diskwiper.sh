@@ -7,12 +7,7 @@ set -e
 set -x
 set -o pipefail
 
-# variables
-
-declare src_filepath=$1
-declare dst_filepath=${2:-zxcv.raw}
-
-# validate
+## utils
 
 function checkroot() {
   #
@@ -23,11 +18,6 @@ function checkroot() {
     return 1
   } || :
 }
-checkroot
-
-[[ -f "${src_filepath}" ]] || { echo "file not found: ${src_filepath}" >&2; exit 1; }
-
-# main
 
 ## disk
 
@@ -42,8 +32,6 @@ function mkdisk() {
   truncate -s ${size}${unit} ${disk_filename}
 }
 
-mkdisk ${dst_filepath} $(stat -c %s ${src_filepath}) " "
-
 ## mbr
 
 function copy_mbr() {
@@ -56,7 +44,6 @@ function copy_mbr() {
   udevadm settle
   losetup -d ${lodev}
 }
-copy_mbr ${src_filepath} ${dst_filepath}
 
 ## partition
 
@@ -142,7 +129,6 @@ function sync_ptab() {
   done < <(lspart ${src_filepath})
   udevadm settle
 }
-sync_ptab ${src_filepath} ${dst_filepath}
 
 ## bootloader
 
@@ -196,6 +182,22 @@ function setup_bootloader() {
   umount ${chroot_dir}
   rmdir  ${chroot_dir}
 }
+
+# variables
+
+declare src_filepath=$1
+declare dst_filepath=${2:-zxcv.raw}
+
+## validate
+
+checkroot
+[[ -f "${src_filepath}" ]] || { echo "file not found: ${src_filepath}" >&2; exit 1; }
+
+## main
+
+mkdisk ${dst_filepath} $(stat -c %s ${src_filepath}) " "
+copy_mbr  ${src_filepath} ${dst_filepath}
+sync_ptab ${src_filepath} ${dst_filepath}
 setup_bootloader ${src_filepath} ${dst_filepath}
 
 kpartx -vd ${src_filepath}
