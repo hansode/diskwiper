@@ -97,7 +97,7 @@ function sync_ptab() {
     *swap*)
       mkswap -f -L swap -U ${src_disk_uuid} ${dst_part_filename}
       ;;
-    ext*|*)
+    ext*)
       local src_part_label=$(e2label ${src_part_filename})
       [[ -z "${src_part_label}" ]] || tune2fs -L ${src_part_label} ${dst_part_filename}
       mkfs.ext4 -F -E lazy_itable_init=1 -U ${src_disk_uuid} ${dst_part_filename}
@@ -121,6 +121,8 @@ function sync_ptab() {
 
       rmdir ${src_mnt}
       rmdir ${dst_mnt}
+      ;;
+    *)
       ;;
     esac
   done < <(lspart ${src_filepath})
