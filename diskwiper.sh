@@ -9,7 +9,7 @@ set -x
 # variables
 
 declare src_filepath=$1
-declare dst_filepath=zxcv.raw
+declare dst_filepath=${2:-zxcv.raw}
 
 # validate
 
