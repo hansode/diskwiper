@@ -51,7 +51,6 @@ function cpmbr() {
   # "count=63" means to copy partition-table and bootloader(grub stage1.5)
   #
   dd if=${src_disk} of=${lodev} bs=512 count=63
-  udevadm settle
   losetup -d ${lodev}
 }
 
@@ -122,13 +121,11 @@ function cpptab() {
       #
       # -c max-mount-counts
       # -i interval-between-checks[d|m|w]
-      #
-      tune2fs -c 0 -i 0 ${dst_part}
-      #
       # -o [^]mount-option[,...]
       # acl    Enable Posix Access Control Lists.
       #
-      tune2fs -o acl ${dst_part}
+      tune2fs -c 0 -i 0 -o acl ${dst_part}
+      tune2fs -l ${dst_part}
 
       local src_part_label=$(e2label ${src_part})
       if [[ -n "${src_part_label}" ]]; then
@@ -160,7 +157,6 @@ function cpptab() {
       ;;
     esac
   done < <(lspartmap ${src_disk})
-  udevadm settle
 }
 
 ## diskwiper
