@@ -39,16 +39,16 @@ function mkdisk() {
 ## mbr
 
 function cpmbr() {
-  local src_filename=$1 dst_filename=$2
+  local src_disk=$1 dst_disk=$2
 
   local lodev=$(losetup -f)
-  losetup ${lodev} ${dst_filename}
+  losetup ${lodev} ${dst_disk}
   # count=
   # - NG  1..27
   # - OK 28..63
   #
   # count=63 means to copy partition-table and bootloader(grub stage1.5)
-  dd if=${src_filename} of=${lodev} bs=512 count=63
+  dd if=${src_disk} of=${lodev} bs=512 count=63
   udevadm settle
   losetup -d ${lodev}
 }
@@ -87,10 +87,10 @@ function tmpdir_path() {
 }
 
 function cpptab() {
-  local src_filename=$1 dst_filename=$2
+  local src_disk=$1 dst_disk=$2
 
-  local src_lodev=$(getdmname ${src_filename})
-  local dst_lodev=$(getdmname ${dst_filename})
+  local src_lodev=$(getdmname ${src_disk})
+  local dst_lodev=$(getdmname ${dst_disk})
 
   local line
   while read line; do
@@ -136,22 +136,22 @@ function cpptab() {
     *)
       ;;
     esac
-  done < <(lspart ${src_filename})
+  done < <(lspart ${src_disk})
   udevadm settle
 }
 
 ## diskwiper
 
 function diskwiper() {
-  local src_filename=$1 dst_filename=$2
+  local src_disk=$1 dst_disk=$2
 
-  local src_filesize=$(stat -c %s ${src_filename})
-  mkdisk ${dst_filename} ${src_filesize} " "
-  cpmbr  ${src_filename} ${dst_filename}
-  cpptab ${src_filename} ${dst_filename}
+  local src_filesize=$(stat -c %s ${src_disk})
+  mkdisk ${dst_disk} ${src_filesize} " "
+  cpmbr  ${src_disk} ${dst_disk}
+  cpptab ${src_disk} ${dst_disk}
 
-  kpartx -vd ${src_filename}
-  kpartx -vd ${dst_filename}
+  kpartx -vd ${src_disk}
+  kpartx -vd ${dst_disk}
 }
 
 ## environment variables
@@ -161,11 +161,11 @@ export LC_ALL=C
 
 ## variables
 
-declare src_filename=$1
-declare dst_filename=${2:-zxcv.raw}
+declare src_disk=$1
+declare dst_disk=${2:-zxcv.raw}
 
 ## main
 
 checkroot
-[[ -f "${src_filename}" ]] || { echo "file not found: ${src_filename}" >&2; exit 1; }
-diskwiper ${src_filename} ${dst_filename}
+[[ -f "${src_disk}" ]] || { echo "file not found: ${src_disk}" >&2; exit 1; }
+diskwiper ${src_disk} ${dst_disk}
