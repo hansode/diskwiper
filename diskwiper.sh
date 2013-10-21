@@ -102,16 +102,18 @@ function cpptab() {
   local src_lodev=$(getdmname ${src_disk})
   local dst_lodev=$(getdmname ${dst_disk})
 
-  local line
+  local line part_index part_fstype
   while read line; do
     set ${line}
+    part_index=${1}
+    part_fstype=${2}
 
-    local src_part=/dev/mapper/${src_lodev}${1}
-    local dst_part=/dev/mapper/${dst_lodev}${1}
+    local src_part=/dev/mapper/${src_lodev}${part_index}
+    local dst_part=/dev/mapper/${dst_lodev}${part_index}
 
     local src_disk_uuid=$(blkid -c /dev/null -sUUID -ovalue ${src_part})
 
-    case "${2}" in
+    case "${part_fstype}" in
     *swap*)
       mkswap -f -L swap -U ${src_disk_uuid} ${dst_part}
       ;;
