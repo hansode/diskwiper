@@ -51,7 +51,6 @@ function cpmbr() {
   # "count=63" means to copy partition-table and bootloader(grub stage1.5)
   #
   dd if=${src_disk} of=${lodev} bs=512 count=63
-  udevadm settle
   losetup -d ${lodev}
 }
 
@@ -160,7 +159,6 @@ function cpptab() {
       ;;
     esac
   done < <(lspartmap ${src_disk})
-  udevadm settle
 }
 
 ## diskwiper
