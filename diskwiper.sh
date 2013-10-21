@@ -39,28 +39,36 @@ function mkdisk() {
 ## mbr
 
 function cpmbr() {
-  local src_filepath=$1 dst_filepath=$2
+  local src_disk=$1 dst_disk=$2
 
   local lodev=$(losetup -f)
-  losetup ${lodev} ${dst_filepath}
-  # count=
+  losetup ${lodev} ${dst_disk}
+  #
+  # count:
   # - NG  1..27
   # - OK 28..63
   #
-  # count=63 means to copy partition-table and bootloader(grub stage1.5)
-  dd if=${src_filepath} of=${lodev} bs=512 count=63
+  # "count=63" means to copy partition-table and bootloader(grub stage1.5)
+  #
+  dd if=${src_disk} of=${lodev} bs=512 count=63
   udevadm settle
   losetup -d ${lodev}
 }
 
 ## partition
 
-function lspart() {
+function lspartmap() {
   local disk_filename=$1
 
+  #
   # $ sudo parted centos-6.4_x86_64.raw print | sed "1,/^Number/d" | egrep -v '^$'
   #  1      32.3kB  4294MB  4294MB  primary  ext4
   #  2      4295MB  5368MB  1073MB  primary  linux-swap(v1)
+  #
+  # $ [command] | awk '{print $1, $6}'
+  # 1 ext4
+  # 2 linux-swap(v1)
+  #
   parted ${disk_filename} print \
   | sed "1,/^Number/d" \
   | egrep -v '^$' \
@@ -68,12 +76,14 @@ function lspart() {
 }
 
 function getdmname() {
-  local disk_filepath=$1
+  local disk_filename=$1
 
+  #
   # $ sudo kpartx -va centos-6.4_x86_64.raw
   # add map loop0p1 (253:0): 0 8386498 linear /dev/loop0 63
   # add map loop0p2 (253:1): 0 2095104 linear /dev/loop0 8388608
-  local kpartx_output=$(kpartx -va ${disk_filepath})
+  #
+  local kpartx_output=$(kpartx -va ${disk_filename})
   udevadm settle
   echo "${kpartx_output}" \
   | egrep "^add map" \
@@ -87,32 +97,45 @@ function tmpdir_path() {
 }
 
 function cpptab() {
-  local src_filepath=$1 dst_filepath=$2
+  local src_disk=$1 dst_disk=$2
 
-  local src_lodev=$(getdmname ${src_filepath})
-  local dst_lodev=$(getdmname ${dst_filepath})
+  local src_lodev=$(getdmname ${src_disk})
+  local dst_lodev=$(getdmname ${dst_disk})
 
-  local line
+  local line part_index part_fstype
   while read line; do
     set ${line}
+    part_index=${1}
+    part_fstype=${2}
 
-    local src_part_filename=/dev/mapper/${src_lodev}${1}
-    local dst_part_filename=/dev/mapper/${dst_lodev}${1}
+    local src_part=/dev/mapper/${src_lodev}${part_index}
+    local dst_part=/dev/mapper/${dst_lodev}${part_index}
 
-    local src_disk_uuid=$(blkid -c /dev/null -sUUID -ovalue ${src_part_filename})
+    local src_disk_uuid=$(blkid -c /dev/null -sUUID -ovalue ${src_part})
 
-    case "${2}" in
+    case "${part_fstype}" in
     *swap*)
-      mkswap -f -L swap -U ${src_disk_uuid} ${dst_part_filename}
+      mkswap -f -L swap -U ${src_disk_uuid} ${dst_part}
       ;;
     ext*)
-      mkfs.ext4 -F -E lazy_itable_init=1 -U ${src_disk_uuid} ${dst_part_filename}
-      tune2fs -c 0 -i 0 ${dst_part_filename}
-      tune2fs -o acl    ${dst_part_filename}
+      mkfs.ext4 -F -E lazy_itable_init=1 -U ${src_disk_uuid} ${dst_part}
+      #
+      # -c max-mount-counts
+      # -i interval-between-checks[d|m|w]
+      #
+      tune2fs -c 0 -i 0 ${dst_part}
+      #
+      # -o [^]mount-option[,...]
+      # acl    Enable Posix Access Control Lists.
+      #
+      tune2fs -o acl ${dst_part}
 
-      local src_part_label=$(e2label ${src_part_filename})
+      local src_part_label=$(e2label ${src_part})
       if [[ -n "${src_part_label}" ]]; then
-         tune2fs -L ${src_part_label} ${dst_part_filename}
+         #
+         # -L volume-label
+         #
+         tune2fs -L ${src_part_label} ${dst_part}
       fi
 
       local src_mnt=$(tmpdir_path)
@@ -121,8 +144,8 @@ function cpptab() {
       mkdir -p ${src_mnt}
       mkdir -p ${dst_mnt}
 
-      mount ${src_part_filename} ${src_mnt}
-      mount ${dst_part_filename} ${dst_mnt}
+      mount ${src_part} ${src_mnt}
+      mount ${dst_part} ${dst_mnt}
 
       rsync -aHA ${src_mnt}/ ${dst_mnt}
       sync
@@ -136,21 +159,22 @@ function cpptab() {
     *)
       ;;
     esac
-  done < <(lspart ${src_filepath})
+  done < <(lspartmap ${src_disk})
   udevadm settle
 }
 
 ## diskwiper
 
 function diskwiper() {
-  local src_filepath=$1 dst_filepath=$2
+  local src_disk=$1 dst_disk=$2
 
-  mkdisk ${dst_filepath} $(stat -c %s ${src_filepath}) " "
-  cpmbr  ${src_filepath} ${dst_filepath}
-  cpptab ${src_filepath} ${dst_filepath}
+  local src_filesize=$(stat -c %s ${src_disk})
+  mkdisk ${dst_disk} ${src_filesize} " "
+  cpmbr  ${src_disk} ${dst_disk}
+  cpptab ${src_disk} ${dst_disk}
 
-  kpartx -vd ${src_filepath}
-  kpartx -vd ${dst_filepath}
+  kpartx -vd ${src_disk}
+  kpartx -vd ${dst_disk}
 }
 
 ## environment variables
@@ -160,11 +184,11 @@ export LC_ALL=C
 
 ## variables
 
-declare src_filepath=$1
-declare dst_filepath=${2:-zxcv.raw}
+declare src_disk=$1
+declare dst_disk=${2:-zxcv.raw}
 
 ## main
 
 checkroot
-[[ -f "${src_filepath}" ]] || { echo "file not found: ${src_filepath}" >&2; exit 1; }
-diskwiper ${src_filepath} ${dst_filepath}
+[[ -f "${src_disk}" ]] || { echo "file not found: ${src_disk}" >&2; exit 1; }
+diskwiper ${src_disk} ${dst_disk}
