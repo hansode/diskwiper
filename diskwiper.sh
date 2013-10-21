@@ -145,7 +145,8 @@ function cpptab() {
 function diskwiper() {
   local src_filename=$1 dst_filename=$2
 
-  mkdisk ${dst_filename} $(stat -c %s ${src_filename}) " "
+  local src_filesize=$(stat -c %s ${src_filename})
+  mkdisk ${dst_filename} ${src_filesize} " "
   cpmbr  ${src_filename} ${dst_filename}
   cpptab ${src_filename} ${dst_filename}
 
