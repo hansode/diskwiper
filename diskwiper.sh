@@ -39,16 +39,16 @@ function mkdisk() {
 ## mbr
 
 function cpmbr() {
-  local src_filepath=$1 dst_filepath=$2
+  local src_filename=$1 dst_filename=$2
 
   local lodev=$(losetup -f)
-  losetup ${lodev} ${dst_filepath}
+  losetup ${lodev} ${dst_filename}
   # count=
   # - NG  1..27
   # - OK 28..63
   #
   # count=63 means to copy partition-table and bootloader(grub stage1.5)
-  dd if=${src_filepath} of=${lodev} bs=512 count=63
+  dd if=${src_filename} of=${lodev} bs=512 count=63
   udevadm settle
   losetup -d ${lodev}
 }
@@ -68,12 +68,12 @@ function lspart() {
 }
 
 function getdmname() {
-  local disk_filepath=$1
+  local disk_filename=$1
 
   # $ sudo kpartx -va centos-6.4_x86_64.raw
   # add map loop0p1 (253:0): 0 8386498 linear /dev/loop0 63
   # add map loop0p2 (253:1): 0 2095104 linear /dev/loop0 8388608
-  local kpartx_output=$(kpartx -va ${disk_filepath})
+  local kpartx_output=$(kpartx -va ${disk_filename})
   udevadm settle
   echo "${kpartx_output}" \
   | egrep "^add map" \
@@ -87,10 +87,10 @@ function tmpdir_path() {
 }
 
 function cpptab() {
-  local src_filepath=$1 dst_filepath=$2
+  local src_filename=$1 dst_filename=$2
 
-  local src_lodev=$(getdmname ${src_filepath})
-  local dst_lodev=$(getdmname ${dst_filepath})
+  local src_lodev=$(getdmname ${src_filename})
+  local dst_lodev=$(getdmname ${dst_filename})
 
   local line
   while read line; do
@@ -136,21 +136,21 @@ function cpptab() {
     *)
       ;;
     esac
-  done < <(lspart ${src_filepath})
+  done < <(lspart ${src_filename})
   udevadm settle
 }
 
 ## diskwiper
 
 function diskwiper() {
-  local src_filepath=$1 dst_filepath=$2
+  local src_filename=$1 dst_filename=$2
 
-  mkdisk ${dst_filepath} $(stat -c %s ${src_filepath}) " "
-  cpmbr  ${src_filepath} ${dst_filepath}
-  cpptab ${src_filepath} ${dst_filepath}
+  mkdisk ${dst_filename} $(stat -c %s ${src_filename}) " "
+  cpmbr  ${src_filename} ${dst_filename}
+  cpptab ${src_filename} ${dst_filename}
 
-  kpartx -vd ${src_filepath}
-  kpartx -vd ${dst_filepath}
+  kpartx -vd ${src_filename}
+  kpartx -vd ${dst_filename}
 }
 
 ## environment variables
@@ -160,11 +160,11 @@ export LC_ALL=C
 
 ## variables
 
-declare src_filepath=$1
-declare dst_filepath=${2:-zxcv.raw}
+declare src_filename=$1
+declare dst_filename=${2:-zxcv.raw}
 
 ## main
 
 checkroot
-[[ -f "${src_filepath}" ]] || { echo "file not found: ${src_filepath}" >&2; exit 1; }
-diskwiper ${src_filepath} ${dst_filepath}
+[[ -f "${src_filename}" ]] || { echo "file not found: ${src_filename}" >&2; exit 1; }
+diskwiper ${src_filename} ${dst_filename}
