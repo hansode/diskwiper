@@ -119,11 +119,22 @@ function cpptab() {
       ;;
     ext*)
       mkfs.ext4 -F -E lazy_itable_init=1 -U ${src_disk_uuid} ${dst_part}
+      #
+      # -c max-mount-counts
+      # -i interval-between-checks[d|m|w]
+      #
       tune2fs -c 0 -i 0 ${dst_part}
-      tune2fs -o acl    ${dst_part}
+      #
+      # -o [^]mount-option[,...]
+      # acl    Enable Posix Access Control Lists.
+      #
+      tune2fs -o acl ${dst_part}
 
       local src_part_label=$(e2label ${src_part})
       if [[ -n "${src_part_label}" ]]; then
+         #
+         # -L volume-label
+         #
          tune2fs -L ${src_part_label} ${dst_part}
       fi
 
