@@ -106,23 +106,23 @@ function cpptab() {
   while read line; do
     set ${line}
 
-    local src_part_filename=/dev/mapper/${src_lodev}${1}
-    local dst_part_filename=/dev/mapper/${dst_lodev}${1}
+    local src_part=/dev/mapper/${src_lodev}${1}
+    local dst_part=/dev/mapper/${dst_lodev}${1}
 
-    local src_disk_uuid=$(blkid -c /dev/null -sUUID -ovalue ${src_part_filename})
+    local src_disk_uuid=$(blkid -c /dev/null -sUUID -ovalue ${src_part})
 
     case "${2}" in
     *swap*)
-      mkswap -f -L swap -U ${src_disk_uuid} ${dst_part_filename}
+      mkswap -f -L swap -U ${src_disk_uuid} ${dst_part}
       ;;
     ext*)
-      mkfs.ext4 -F -E lazy_itable_init=1 -U ${src_disk_uuid} ${dst_part_filename}
-      tune2fs -c 0 -i 0 ${dst_part_filename}
-      tune2fs -o acl    ${dst_part_filename}
+      mkfs.ext4 -F -E lazy_itable_init=1 -U ${src_disk_uuid} ${dst_part}
+      tune2fs -c 0 -i 0 ${dst_part}
+      tune2fs -o acl    ${dst_part}
 
-      local src_part_label=$(e2label ${src_part_filename})
+      local src_part_label=$(e2label ${src_part})
       if [[ -n "${src_part_label}" ]]; then
-         tune2fs -L ${src_part_label} ${dst_part_filename}
+         tune2fs -L ${src_part_label} ${dst_part}
       fi
 
       local src_mnt=$(tmpdir_path)
@@ -131,8 +131,8 @@ function cpptab() {
       mkdir -p ${src_mnt}
       mkdir -p ${dst_mnt}
 
-      mount ${src_part_filename} ${src_mnt}
-      mount ${dst_part_filename} ${dst_mnt}
+      mount ${src_part} ${src_mnt}
+      mount ${dst_part} ${dst_mnt}
 
       rsync -aHA ${src_mnt}/ ${dst_mnt}
       sync
