@@ -43,11 +43,13 @@ function cpmbr() {
 
   local lodev=$(losetup -f)
   losetup ${lodev} ${dst_disk}
-  # count=
+  #
+  # count:
   # - NG  1..27
   # - OK 28..63
   #
-  # count=63 means to copy partition-table and bootloader(grub stage1.5)
+  # "count=63" means to copy partition-table and bootloader(grub stage1.5)
+  #
   dd if=${src_disk} of=${lodev} bs=512 count=63
   udevadm settle
   losetup -d ${lodev}
@@ -58,9 +60,15 @@ function cpmbr() {
 function lspartmap() {
   local disk_filename=$1
 
+  #
   # $ sudo parted centos-6.4_x86_64.raw print | sed "1,/^Number/d" | egrep -v '^$'
   #  1      32.3kB  4294MB  4294MB  primary  ext4
   #  2      4295MB  5368MB  1073MB  primary  linux-swap(v1)
+  #
+  # $ [command] | awk '{print $1, $6}'
+  # 1 ext4
+  # 2 linux-swap(v1)
+  #
   parted ${disk_filename} print \
   | sed "1,/^Number/d" \
   | egrep -v '^$' \
@@ -70,9 +78,11 @@ function lspartmap() {
 function getdmname() {
   local disk_filename=$1
 
+  #
   # $ sudo kpartx -va centos-6.4_x86_64.raw
   # add map loop0p1 (253:0): 0 8386498 linear /dev/loop0 63
   # add map loop0p2 (253:1): 0 2095104 linear /dev/loop0 8388608
+  #
   local kpartx_output=$(kpartx -va ${disk_filename})
   udevadm settle
   echo "${kpartx_output}" \
