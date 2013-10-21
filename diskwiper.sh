@@ -55,7 +55,7 @@ function cpmbr() {
 
 ## partition
 
-function lspart() {
+function lspartmap() {
   local disk_filename=$1
 
   # $ sudo parted centos-6.4_x86_64.raw print | sed "1,/^Number/d" | egrep -v '^$'
@@ -136,7 +136,7 @@ function cpptab() {
     *)
       ;;
     esac
-  done < <(lspart ${src_disk})
+  done < <(lspartmap ${src_disk})
   udevadm settle
 }
 
