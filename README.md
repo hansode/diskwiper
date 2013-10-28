@@ -19,7 +19,7 @@ Usage
 -----
 
 ```bsah
-diskwiper.sh SOURCE.RAW DEST.RAW
+diskwiper SOURCE.RAW DEST.RAW
 ```
 
 License
